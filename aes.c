@@ -829,6 +829,382 @@ void aesKeyPatch(unsigned char* key)
 
 
 
+#elif AES_IMPLEMENTATION == 4 && AES_CIPHER
+
+
+/************************************************************************/
+/*   MINI                                                  by D. Kilian */
+/************************************************************************/
+
+
+#define A "r16"
+#define t3 "r17"
+#define t4 "r18"
+#define B "r20"
+#define Rcon "r21"
+#define t1 "r24"
+#define t2 "r25"
+#define Xlo "r26"
+#define Xhi "r27"
+#define Ylo "r28"
+#define Yhi "r29"
+#define Zlo "r30"
+#define Zhi "r31"
+
+#if AES_SHORTSBOX
+#if AES_SHORTSBOXSIZE > 216
+#undef AES_SHORTSBOX
+#define AES_SHORTSBOX 0
+#endif
+#endif
+
+
+#if AES_SHORTSBOX
+
+const unsigned char aes_tab_invGf28[AES_SHORTSBOXSIZE] PROGMEM = {
+	0x00,0x01,0x8d,0xf6,
+	0xcb,0x52,0x7b,0xd1,
+	0xe8,0x4f,
+	#if AES_SHORTSBOXSIZE > 10
+	0x29,0xc0,
+	#endif
+	#if AES_SHORTSBOXSIZE > 12
+	0xb0,0xe1,0xe5,0xc7,
+	#endif
+	#if AES_SHORTSBOXSIZE > 16
+	0x74,0xb4,0xaa,0x4b,
+	#endif
+	#if AES_SHORTSBOXSIZE > 20
+	0x99,0x2b,0x60,0x5f,
+	#endif
+	#if AES_SHORTSBOXSIZE > 24
+	0x58,0x3f,0xfd,0xcc,
+	#endif
+	#if AES_SHORTSBOXSIZE > 28
+	0xff,0x40,0xee,0xb2,
+	#endif
+	#if AES_SHORTSBOXSIZE > 32
+	0x3a,0x6e,0x5a,0xf1,
+	#endif
+	#if AES_SHORTSBOXSIZE > 36
+	0x55,0x4d,0xa8,0xc9,
+	#endif
+	#if AES_SHORTSBOXSIZE > 40
+	0xc1,0x0a,0x98,0x15,
+	#endif
+	#if AES_SHORTSBOXSIZE > 44
+	0x30,0x44,0xa2,0xc2,
+	#endif
+	#if AES_SHORTSBOXSIZE > 48
+	0x2c,0x45,0x92,0x6c,
+	#endif
+	#if AES_SHORTSBOXSIZE > 52
+	0xf3,0x39,0x66,0x42,
+	#endif
+	#if AES_SHORTSBOXSIZE > 56
+	0xf2,0x35,0x20,0x6f,
+	#endif
+	#if AES_SHORTSBOXSIZE > 60
+	0x77,0xbb,0x59,0x19,
+	#endif
+	#if AES_SHORTSBOXSIZE > 64
+	0x1d,0xfe,0x37,0x67,
+	#endif
+	#if AES_SHORTSBOXSIZE > 68
+	0x2d,0x31,0xf5,0x69,
+	#endif
+	#if AES_SHORTSBOXSIZE > 72
+	0xa7,0x64,0xab,0x13,
+	#endif
+	#if AES_SHORTSBOXSIZE > 76
+	0x54,0x25,0xe9,0x09,
+	#endif
+	#if AES_SHORTSBOXSIZE > 80
+	0xed,0x5c,0x05,0xca,
+	#endif
+	#if AES_SHORTSBOXSIZE > 84
+	0x4c,0x24,0x87,0xbf,
+	#endif
+	#if AES_SHORTSBOXSIZE > 88
+	0x18,0x3e,0x22,0xf0,
+	#endif
+	#if AES_SHORTSBOXSIZE > 92
+	0x51,0xec,0x61,0x17,
+	#endif
+	#if AES_SHORTSBOXSIZE > 96
+	0x16,0x5e,0xaf,0xd3,
+	#endif
+	#if AES_SHORTSBOXSIZE > 100
+	0x49,0xa6,0x36,0x43,
+	#endif
+	#if AES_SHORTSBOXSIZE > 104
+	0xf4,0x47,0x91,0xdf,
+	#endif
+	#if AES_SHORTSBOXSIZE > 108
+	0x33,0x93,0x21,0x3b,
+	#endif
+	#if AES_SHORTSBOXSIZE > 112
+	0x79,0xb7,0x97,0x85,
+	#endif
+	#if AES_SHORTSBOXSIZE > 116
+	0x10,0xb5,0xba,0x3c,
+	#endif
+	#if AES_SHORTSBOXSIZE > 120
+	0xb6,0x70,0xd0,0x06,
+	#endif
+	#if AES_SHORTSBOXSIZE > 124
+	0xa1,0xfa,0x81,0x82,
+	#endif
+	#if AES_SHORTSBOXSIZE > 128
+	0x83,0x7e,0x7f,0x80,
+	#endif
+	#if AES_SHORTSBOXSIZE > 132
+	0x96,0x73,0xbe,0x56,
+	#endif
+	#if AES_SHORTSBOXSIZE > 136
+	0x9b,0x9e,0x95,0xd9,
+	#endif
+	#if AES_SHORTSBOXSIZE > 140
+	0xf7,0x02,0xb9,0xa4,
+	#endif
+	#if AES_SHORTSBOXSIZE > 144
+	0xde,0x6a,0x32,0x6d,
+	#endif
+	#if AES_SHORTSBOXSIZE > 148
+	0xd8,0x8a,0x84,0x72,
+	#endif
+	#if AES_SHORTSBOXSIZE > 152
+	0x2a,0x14,0x9f,0x88,
+	#endif
+	#if AES_SHORTSBOXSIZE > 156
+	0xf9,0xdc,0x89,0x9a,
+	#endif
+	#if AES_SHORTSBOXSIZE > 160
+	0xfb,0x7c,0x2e,0xc3,
+	#endif
+	#if AES_SHORTSBOXSIZE > 164
+	0x8f,0xb8,0x65,0x48,
+	#endif
+	#if AES_SHORTSBOXSIZE > 168
+	0x26,0xc8,0x12,0x4a,
+	#endif
+	#if AES_SHORTSBOXSIZE > 172
+	0xce,0xe7,0xd2,0x62,
+	#endif
+	#if AES_SHORTSBOXSIZE > 176
+	0x0c,0xe0,0x1f,0xef,
+	#endif
+	#if AES_SHORTSBOXSIZE > 180
+	0x11,0x75,0x78,0x71,
+	#endif
+	#if AES_SHORTSBOXSIZE > 184
+	0xa5,0x8e,0x76,0x3d,
+	#endif
+	#if AES_SHORTSBOXSIZE > 188
+	0xbd,0xbc,0x86,0x57,
+	#endif
+	#if AES_SHORTSBOXSIZE > 192
+	0x0b,0x28,0x2f,0xa3,
+	#endif
+	#if AES_SHORTSBOXSIZE > 196
+	0xda,0xd4,0xe4,0x0f,
+	#endif
+	#if AES_SHORTSBOXSIZE > 200
+	0xa9,0x27,0x53,0x04,
+	#endif
+	#if AES_SHORTSBOXSIZE > 204
+	0x1b,0xfc,0xac,0xe6,
+	#endif
+	#if AES_SHORTSBOXSIZE > 208
+	0x7a,0x07,0xae,0x63,
+	#endif
+	#if AES_SHORTSBOXSIZE > 212
+	0xc5,0xdb,0xe2,0xea,
+	#endif
+};
+
+#else
+
+const unsigned char aes_tab_sbox[] PROGMEM = { SBOX_DATA_INIT };
+	
+#ifdef AES_SHORTSBOXSIZE
+#undef AES_SHORTSBOXSIZE
+#endif
+#define AES_SHORTSBOXSIZE 10
+
+#endif
+
+char aesTempBuffer[21];
+
+void aesCipher(const unsigned char* key, unsigned char* data)
+{
+	asm volatile (
+		"	rcall swapState			\n"
+		"	push "Xlo"			\n"
+		"	push "Xhi"			\n"
+		"	ldi "Ylo", lo8(aesTempBuffer+5)			\n"
+		"	ldi "Yhi", hi8(aesTempBuffer+5)			\n"
+		"loadkeyloop:			\n"
+		"		ld "t1", Z+			\n"
+		"		st Y+, "t1"			\n"
+		"		cpi "Ylo", lo8(aesTempBuffer+21)			\n"
+		"		brne loadkeyloop			\n"
+		"	ldi "Rcon", 1			\n"
+		"mainloop:			\n"
+		"		ldi "Ylo", lo8(aesTempBuffer+4)			\n"
+		"		ldi "Yhi", hi8(aesTempBuffer+4)			\n"
+		"inckeyloop1:			\n"
+		"			ldd "t1", Y+16			\n"
+		"			rcall sbox			\n"
+		"			st -Y, "t1"			\n"
+		"			cpi "Ylo", lo8(aesTempBuffer)			\n"
+		"			brne inckeyloop1			\n"
+		"		adiw "Ylo", 1			\n"
+		"		std Y+3, "t1"			\n"
+		"		ld "t1", Y			\n"
+		"		eor "t1", "Rcon"			\n"
+		"		st Y, "t1"			\n"
+		"		mov "t1", "Rcon"			\n"
+		"		rcall gf28mul2			\n"
+		"		mov "Rcon", "t1"			\n"
+		"		clr "Xlo"			\n"
+		"		clr "Xhi"			\n"
+		"addkeyloop1:			\n"
+		"			ldd "t4", Y+4			\n"
+		"			ld "t1", X			\n"
+		"			eor "t1", "t4"			\n"
+		"			cpi "Rcon", 0xD8			\n"
+		"			breq .+2			\n"
+		"			rcall sbox			\n"
+		"			st X+, "t1"			\n"
+		"			ld "t1", Y+			\n"
+		"			eor "t1", "t4"			\n"
+		"			std Y+3, "t1"			\n"
+		"			cpi "Xlo", 16			\n"
+		"			brne addkeyloop1			\n"
+		"		cpi "Rcon", 0xD8			\n"
+		"		breq endofmainloop			\n"
+		"		mov r17, r1			\n"
+		"		movw r18, r2			\n"
+		"		movw r22, r6			\n"
+		"		mov r27, r11			\n"
+		"		clr "Zhi"			\n"
+		//"		clr "Zlo"			\n" <-- Zlo == 0 after sbox
+		"mixloop1:			\n"
+		"			clr "Xlo"			\n"
+		"			rcall shiftload			\n"
+		"			mov "A", "Yhi"			\n"
+		"			rcall shiftload			\n"
+		"			mov "B", "Yhi"			\n"
+		"			rcall shiftload			\n"
+		"			mov "Ylo", "Yhi"			\n"
+		"			rcall shiftload			\n"
+		"			sbiw "Zlo", 20			\n"
+		"mixloop2:			\n"
+		"				mov "t1", "A"			\n"
+		"				eor "t1", "B"			\n"
+		"				rcall gf28mul2			\n"
+		"				eor "t1", "A"			\n"
+		"				eor "t1", "Xlo"			\n"
+		"				cpi "Rcon", 0x6C			\n"
+		"				brne .+2			\n"
+		"					mov "t1", "A"			\n"
+		"				st Z+, "t1"			\n"
+		"				mov "t1", "A"			\n"
+		"				mov "A", "B"			\n"
+		"				mov "B", "Ylo"			\n"
+		"				mov "Ylo", "Yhi"			\n"
+		"				mov "Yhi", "t1"			\n"
+		"				mov "t1", "Zlo"			\n"
+		"				andi "t1", 0x03			\n"
+		"				brne mixloop2			\n"
+		"			cpi "Zlo", 16			\n"
+		"			brne mixloop1			\n"
+		"		rjmp mainloop			\n"
+		"endofmainloop:			\n"
+		"	pop "Xhi"			\n"
+		"	pop "Xlo"			\n"
+		"	rcall swapState			\n"
+		"	rjmp endoffunc			\n"
+		"shiftload:			\n"
+		"	ld "Yhi", Z			\n"
+		"	eor "Xlo", "Yhi"			\n"
+		"	adiw "Zlo", 5			\n"
+		"	ret			\n"
+		"gf28mul2:			\n"
+		"	ldi "t2", 0x1B			\n"
+		"	lsl "t1"			\n"
+		"	brcc .+2			\n"
+		"	eor "t1", "t2"			\n"
+		"	ret			\n"
+		
+#if AES_SHORTSBOX
+		"sbox:			\n"
+		"	clr "t3"			\n"
+		"sboxloop1:			\n"
+		"		rcall gf28mul2			\n"
+		"		inc "t3"			\n"
+		"		cpi "t1", %2			\n"
+		"		brcc sboxloop1			\n"
+		"	mov "Zlo", "t1"			\n"
+		"	clr "Zhi"			\n"
+		"	subi "Zlo",lo8(-(aes_tab_invGf28))			\n"
+		"	sbci "Zhi",hi8(-(aes_tab_invGf28))			\n"
+		"	lpm "t1", Z			\n"
+		"sboxloop2:			\n"
+		"		rcall gf28mul2			\n"
+		"		dec "t3"			\n"
+		"		brne sboxloop2			\n"
+		"	mov "Zlo", "t1"			\n"
+		"	ldi "t1", 0x63			\n"
+		"	ldi "t3", 0x1f			\n"
+		"sboxloop3:			\n"
+		"		sbrc "Zlo", 0			\n"
+		"		eor "t1", "t3"			\n"
+		"		lsl "t3"			\n"
+		"		brcc .+2			\n"
+		"		ori "t3", 1			\n"
+		"		lsr "Zlo"			\n"
+		"		brne sboxloop3			\n"
+		"	ret			\n"
+#else
+		"sbox:			\n"
+		"	mov "Zlo", "t1"			\n"
+		"	clr "Zhi"			\n"
+		"	subi "Zlo",lo8(-(aes_tab_sbox))			\n"
+		"	sbci "Zhi",hi8(-(aes_tab_sbox))			\n"
+		"	lpm "t1", Z			\n"
+		"	clr "Zlo"			\n"
+		"	ret			\n"
+#endif
+
+		"swapState:			\n"
+		"	clr "Ylo"			\n"
+		"	clr "Yhi"			\n"
+		"swaploop1:			\n"
+		"		ld "t1", X			\n"
+		"		ld "t2", Y			\n"
+		"		st X+, "t2"			\n"
+		"		st Y+, "t1"			\n"
+		"		cpi "Ylo", 16			\n"
+		"		brne swaploop1			\n"
+		"	sbiw "Xlo", 16			\n"
+		"	ret			\n"
+		
+		"endoffunc:			\n"
+		
+		: "+x" (data), "+z" (key)
+		: "M" (AES_SHORTSBOXSIZE)
+		: "memory",
+		"r16", "r17", "r18", "r19", "r20", "r21",
+		"r22", "r23", "r24", "r25", "r28", "r29"
+	);
+}
+
+
+
+
+
 #elif AES_IMPLEMENTATION == 1
 
 

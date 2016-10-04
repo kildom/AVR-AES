@@ -103,7 +103,7 @@ int main(void)
 {
 	PORTA = 0;
 	
-	#if AES_IMPLEMENTATION == 0
+	#if AES_IMPLEMENTATION == 0 || AES_IMPLEMENTATION == 4
 	GVALUE("padding", 0);
 	#else
 	GVALUE("padding", 1);
@@ -116,11 +116,15 @@ int main(void)
 	COPY(key, K);
 	TIMERS(aesCipher(key, data));
 	COMPARE(key, IK);
-	#else
+	#elif AES_IMPLEMENTATION <= 3
 	TIMERS(aesCipher(E, data));
+	#else
+	TIMERS(aesCipher(K, data));
 	#endif
 	COMPARE(data, cipher);
 	#endif
+
+	#if AES_IMPLEMENTATION != 4
 
 	#if AES_INVCIPHER
 	NAME("aesInvCipher");
@@ -168,8 +172,10 @@ int main(void)
 	COMPARE(key, K);
 	#endif
 	#endif	
+	
+	#endif
 
-	#if AES_IMPLEMENTATION <= 1
+	#if AES_IMPLEMENTATION <= 1 || AES_IMPLEMENTATION == 4
 	GVALUE("user", sizeof(key) + sizeof(data));
 	#else
 	GVALUE("user", sizeof(E) + sizeof(data));

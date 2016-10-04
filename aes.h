@@ -38,12 +38,13 @@
 
 /*
 *	Select implementation:
-*	0 - SMALL by D. Kiliam
+*	0 - SMALL by D. Kilian
 *	1 - FANTASTIC by B. Poettering
 *	2 - FURIOUS by B. Poettering
 *	3 - FAST by B. Poettering
+*	4 - MINI by D. Kilian
 */
-#define AES_IMPLEMENTATION 1
+#define AES_IMPLEMENTATION 0
 
 /*
 *	Add aesCipher to the library.
@@ -68,7 +69,7 @@
 /*
 *	Add aesKeyExpand to the library, if available.
 */
-#define AES_KEYEXPAND 1
+#define AES_KEYEXPAND 0
 
 /*
 *	Use short array instead of SBOX.
@@ -86,7 +87,7 @@
 *	Use faster function for ShiftRows and InvShiftRows transformations.
 *	Only significant in SMALL implementation.
 */
-#define AES_FASTSHROWS 0
+#define AES_FASTSHROWS 1
 
 /*
 *	Use faster function for MixColumns and InvMixColumns transformations.
@@ -99,7 +100,7 @@
 *	Only significant in SMALL implementation and when
 *	AES_SHORTSBOX != 0 || AES_SHORTINVSBOX != 0.
 */
-#define AES_SHORTSBOXSIZE 32
+#define AES_SHORTSBOXSIZE 16
 
 /*
 *	Allow inline assembler.
@@ -119,7 +120,7 @@
 
 #if AES_IMPLEMENTATION == 0 || AES_IMPLEMENTATION == 1
 
-// Fantastic by Poettering and Small by Dominik
+// Fantastic and Small
 
 #if AES_CIPHER
 void aesCipher(unsigned char* key, unsigned char* data);
@@ -139,7 +140,7 @@ void aesKeyPatch(unsigned char* key);
 
 #elif AES_IMPLEMENTATION == 2 || AES_IMPLEMENTATION == 3
 
-// Fast and Furious by Poettering
+// Fast and Furious
 
 #if AES_CIPHER
 void aesCipher(const unsigned char* expanded, unsigned char* data);
@@ -166,6 +167,16 @@ void aesInvCipher(const unsigned char* patched, unsigned char* data);
 #endif
 
 #endif
+
+#elif AES_IMPLEMENTATION == 4
+
+// Mini
+
+#if AES_CIPHER
+extern char aesTempBuffer[21];
+void aesCipher(const unsigned char* key, unsigned char* data);
+#endif
+
 
 #endif
 
