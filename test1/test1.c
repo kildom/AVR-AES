@@ -6,6 +6,17 @@
 #include "aes.h"
 
 
+#include "avr_mcu_section.h"
+AVR_MCU(F_CPU, "atmega88");
+AVR_MCU_VCD_FILE("test1.vcd", 1);
+const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
+	{ AVR_MCU_VCD_SYMBOL("SPH"), .what = (void*)&SPH, },
+	{ AVR_MCU_VCD_SYMBOL("SPL"), .what = (void*)&SPL, },
+	{ AVR_MCU_VCD_SYMBOL("DAT"), .what = (void*)&PORTB, },
+	{ AVR_MCU_VCD_SYMBOL("CMD"), .what = (void*)&PORTC, },
+};
+
+
 const unsigned char E[] = {
 	0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c,0xa0,0xfa,0xfe,0x17,0x88,0x54,0x2c,
 	0xb1,0x23,0xa3,0x39,0x39,0x2a,0x6c,0x76,0x05,0xf2,0xc2,0x95,0xf2,0x7a,0x96,0xb9,0x43,0x59,0x35,0x80,0x7a,0x73,0x59,
@@ -46,7 +57,7 @@ unsigned char expanded[176];
 
 PORTB - data
 
-PORTA
+PORTC
 	0 - start program
 	1 - start timing
 	2 - stop timing
@@ -61,7 +72,7 @@ PORTA
 
 #define COPY(to, from) memcpy(to, from, sizeof(to));
 
-#define TIMERS(func) { PORTA = 1; func; PORTA = 2; }
+#define TIMERS(func) { PORTC = 1; func; PORTC = 2; }
 
 #define COMPARE(x, y) comp((x), (y), sizeof(x))
 
@@ -69,18 +80,18 @@ void comp(const unsigned char* ptr1, const unsigned char* ptr2, int size)
 {
 	while (size--) {
 		if (*ptr1++ != *ptr2++) {
-			PORTA = 4;
+			PORTC = 4;
 			return;
 		}
 	}
-	PORTA = 3;
+	PORTC = 3;
 }
 
 #define NAME(x) { name(x, 5); }
 
 void name(const char* name, unsigned char t)
 {
-	PORTA = t;
+	PORTC = t;
 	while (1) {
 		char p = *name++;
 		if (!p) break;
@@ -94,14 +105,14 @@ void name(const char* name, unsigned char t)
 void sendValue(const char* n, int v, unsigned char t)
 {
 	name(n, 6);
-	PORTA = t;
+	PORTC = t;
 	PORTB = v >> 8;
 	PORTB = v;
 }
 
 int main(void)
 {
-	PORTA = 0;
+	PORTC = 0;
 	
 	#if AES_IMPLEMENTATION == 0 || AES_IMPLEMENTATION == 4
 	GVALUE("padding", 0);
