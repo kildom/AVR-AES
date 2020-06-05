@@ -1,20 +1,15 @@
 
 #include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <avr/io.h>
 #include <avr/pgmspace.h>
+#include <avr/interrupt.h>
+#include <avr/sleep.h>
+
+#include "simu.h"
 
 #include "aes.h"
-
-
-#include "avr_mcu_section.h"
-AVR_MCU(F_CPU, "atmega88");
-AVR_MCU_VCD_FILE("test1.vcd", 1);
-const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
-	{ AVR_MCU_VCD_SYMBOL("SPH"), .what = (void*)&SPH, },
-	{ AVR_MCU_VCD_SYMBOL("SPL"), .what = (void*)&SPL, },
-	{ AVR_MCU_VCD_SYMBOL("DAT"), .what = (void*)&PORTB, },
-	{ AVR_MCU_VCD_SYMBOL("CMD"), .what = (void*)&PORTC, },
-};
 
 
 const unsigned char E[] = {
@@ -52,74 +47,25 @@ unsigned char key[16];
 unsigned char data[16];
 unsigned char expanded[176];
 
-
-/*
-
-PORTB - data
-
-PORTC
-	0 - start program
-	1 - start timing
-	2 - stop timing
-	3 - compare OK
-	4 - compare ERR
-	5 - start function name
-	6 - start property name
-	7 - func value
-	8 - global value
-
-*/
-
 #define COPY(to, from) memcpy(to, from, sizeof(to));
-
-#define TIMERS(func) { PORTC = 1; func; PORTC = 2; }
-
-#define COMPARE(x, y) comp((x), (y), sizeof(x))
-
-void comp(const unsigned char* ptr1, const unsigned char* ptr2, int size)
-{
-	while (size--) {
-		if (*ptr1++ != *ptr2++) {
-			PORTC = 4;
-			return;
-		}
-	}
-	PORTC = 3;
-}
-
-#define NAME(x) { name(x, 5); }
-
-void name(const char* name, unsigned char t)
-{
-	PORTC = t;
-	while (1) {
-		char p = *name++;
-		if (!p) break;
-		PORTB = p;
-	}
-}
-
-#define GVALUE(name, x) sendValue(name, x, 8)
-#define FVALUE(name, x) sendValue(name, x, 7)
-
-void sendValue(const char* n, int v, unsigned char t)
-{
-	name(n, 6);
-	PORTC = t;
-	PORTB = v >> 8;
-	PORTB = v;
-}
 
 int main(void)
 {
-	PORTC = 0;
-	
+	volatile char x[122];
+	x[100] = 1;
+	value_u32("frequency", F_CPU);
+
 	#if AES_IMPLEMENTATION == 0 || AES_IMPLEMENTATION == 4
-	GVALUE("padding", 0);
+	value_u8("padding", 0);
 	#else
-	GVALUE("padding", 1);
+	value_u8("padding", 1);
 	#endif
 
+	//__asm__ volatile ("push r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\n");
+
+	value_str("test", "empty");
+	TIMERS("time", (void)0);
+#if 0
 	#if AES_CIPHER
 	NAME("aesCipher");
 	COPY(data, plain);
@@ -191,6 +137,6 @@ int main(void)
 	#else
 	GVALUE("user", sizeof(E) + sizeof(data));
 	#endif
-
-	return 0;
+#endif
+	simu_exit();
 }	
