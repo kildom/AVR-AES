@@ -2752,7 +2752,7 @@ void aesKeyPatch(unsigned char* expanded)
 		"st "_Y"+, "_H4"		\n"
 		"dec "_I"		\n"
 		"sbrs "_I", 7		\n"
-		"jmp patchd0		\n"
+		"rjmp patchd0		\n"
 		: "+y" (expanded)
 		:
 		: "memory", _H1, _H2, _H3, _H4, _H5, _I, _ST11, _ST21, _ST31, _ST41, _ZH, _ZL
@@ -3006,7 +3006,7 @@ void aesCipher(const unsigned char* expanded, unsigned char* data)
 		"adiw "_YL", 16		\n"
 		"dec "_I"		\n"
 		"sbrs "_I",7		\n"
-		"jmp encryp0		\n"
+		"rjmp encryp0		\n"
 		"mov "_ZL", "_ST11"		\n"
 		"lpm "_ST11", "_Z"		\n"
 		"mov "_ZL", "_ST12"		\n"
@@ -3350,7 +3350,7 @@ void aesInvCipher(const unsigned char* patched, unsigned char* data)
 		"eor "_ST24", "_H2"		\n"
 		"dec "_I"		\n"
 		"sbrs "_I",7		\n"
-		"jmp decryp0		\n"
+		"rjmp decryp0		\n"
 		"ldi "_ZH", hi8(aes_tab_isbox)		\n"
 		"mov "_ZL", "_ST11"		\n"
 		"lpm "_ST11", "_Z"		\n"
