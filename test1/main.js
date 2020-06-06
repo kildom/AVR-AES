@@ -1,7 +1,16 @@
 const fs = require("fs");
 
+const CMD = {
+    TIMER_START: 1,
+    TIMER_STOP: 2,
+    NAME: 3,
+    UINT: 4,
+    STR: 5,
+    STACK: -1
+};
 
-let vcd = fs.readFileSync('C:/work/AVR-AES/simavr/simavr/obj-i686-w64-mingw32/aes_test.vcd', 'UTF-8');
+let vcd = fs.readFileSync('aes_test.vcd', 'UTF-8');
+
 
 function vcd2reg(vcd, callback) {
     let start = (/^#/m).exec(vcd).index;
@@ -24,62 +33,145 @@ function vcd2reg(vcd, callback) {
         if (typeof (time) != 'undefined') {
             now = parseFloat(time) * step;
         } else {
-            //regs.push({time: now, name: nameOf[char], value: parseInt(bits, 2)});
             callback(now, nameOf[char], parseInt(bits, 2));
         }
         return '';
     });
 }
 
-let stack = 0;
-let stackSPL = 0;
-let stackSPH = 0;
-let stackLast = '';
-let stackTime = 0;
-let maxStackDelay = 0;
 
-let data = [];
+function vcd2cmd(vcd, callback) {
 
-function updateStack(time, value, expected, current)
-{
-    if (stackLast == expected) {
-        stack = stackSPL | stackSPH << 8;
-        maxStackDelay = Math.max(maxStackDelay, time - stackTime); // TODO: check if time not too long
-        console.log(time, maxStackDelay, stack);
-        stackLast = '';
-    } else if (stackLast == current) {
-        throw Error('Unexpected sequence of SPL/SPH. Unable to correctly interpret stack size.');
-    } else {
-        stackLast = current;
+    let stack = 0;
+    let stackSPL = 0;
+    let stackSPH = 0;
+    let stackLast = '';
+    let stackTime = 0;
+    let data = [];
+
+    function updateStack(time, value, expected, current) {
+        if (stackLast == expected) {
+            stack = stackSPL | stackSPH << 8;
+            callback(time, CMD.STACK, [stack, time - stackTime]);
+            stackLast = '';
+        } else if (stackLast == current) {
+            throw Error('Unexpected sequence of SPL/SPH. Unable to correctly interpret stack size.');
+        } else {
+            stackLast = current;
+        }
+        stackValue = value;
+        stackTime = time;
     }
-    stackValue = value;
-    stackTime = time;
+
+    vcd2reg(vcd, (time, name, value) => {
+        switch (name) {
+            case 'SPH':
+                stackSPH = value;
+                updateStack(time, value, 'SPL', 'SPH');
+                break;
+
+            case 'SPL':
+                stackSPL = value;
+                updateStack(time, value, 'SPH', 'SPL');
+                break;
+
+            case 'DAT':
+                data.push(value);
+                break;
+
+            case 'CMD':
+                callback(time, value, data);
+                data = [];
+                break;
+        }
+    });
 }
 
-function executeCommand(id, data)
-{
-    console.log('CMD', id, data);
+
+function vcd2msg(vcd, callback) {
+
+    let currentStack = 0;
+    let lastName = '';
+    let timerInfo = [];
+    
+    function arrToString(arr) {
+        let str = '';
+        for (let i = 0; i < arr.length; i++)
+            str += String.fromCharCode(arr[i]);
+        return str;
+    }
+
+    function arrToUint(arr) {
+        let uint = 0;
+        let sh = 0;
+        for (let i = 0; i < arr.length; i++) {
+            uint |= arr[i] << sh;
+            sh += 8;
+        }
+        return uint;
+    }
+    
+    vcd2cmd(vcd, (time, id, data) => {
+        switch (id) {
+            case CMD.TIMER_START:
+                timerInfo.push({
+                    name: lastName,
+                    stackMin: currentStack,
+                    stackMax: currentStack,
+                    time: time
+                });
+                break;
+
+            case CMD.TIMER_STOP:
+                if (timerInfo.length == 0) throw Error("Invalid timer start/stop sequence.");
+                let info = timerInfo.pop();
+                info.time = Math.max(0, time - info.time);
+                callback(time, info.name, info);
+                break;
+
+            case CMD.NAME:
+                lastName = arrToString(data);
+                break;
+
+            case CMD.UINT:
+                data = arrToUint(data);
+                callback(time, lastName, data);
+                break;
+
+            case CMD.STR:
+                data = arrToString(data);
+                callback(time, lastName, data);
+                break;
+
+            case CMD.STACK:
+                currentStack = data[0];
+                for (let i = 0; i < timerInfo.length; i++) {
+                    timerInfo[i].stackMax = Math.max(timerInfo[i].stackMax, currentStack);
+                    timerInfo[i].stackMin = Math.min(timerInfo[i].stackMin, currentStack);
+                }
+                break;
+        }
+    });
 }
 
-vcd2reg(vcd, (time, name, value) => {
+
+let frequency = 20000000;
+let cyclePeriod = 50;
+let cycleMul = 1 / 50;
+
+function executeParam(time, name, value) {
+    console.log(time, name, value);
     switch (name) {
-        case 'SPH':
-            stackSPH = value;
-            updateStack(time, value, 'SPL', 'SPH');
-            break;
-
-        case 'SPL':
-            stackSPL = value;
-            updateStack(time, value, 'SPH', 'SPL');
-            break;
-
-        case 'DAT':
-            data.push(value);
-            break;
-
-        case 'CMD':
-            executeCommand(value, data);
-            data = [];
+        case 'frequency':
+            frequency = value;
+            cyclePeriod = 1 / value * 1000000000;
+            cycleMul = 1 / cyclePeriod;
             break;
     }
-})
+}
+
+
+
+vcd2msg(vcd, (time, name, data) => {
+    console.log(time, name, data);
+});

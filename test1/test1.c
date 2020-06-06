@@ -51,20 +51,18 @@ unsigned char expanded[176];
 
 int main(void)
 {
-	volatile char x[122];
-	x[100] = 1;
-	value_u32("frequency", F_CPU);
+	simuMsgU32("frequency", F_CPU);
 
 	#if AES_IMPLEMENTATION == 0 || AES_IMPLEMENTATION == 4
-	value_u8("padding", 0);
+	simuMsgU8("padding", 0);
 	#else
-	value_u8("padding", 1);
+	simuMsgU8("padding", 1);
 	#endif
 
 	//__asm__ volatile ("push r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\n");
 
-	value_str("test", "empty");
-	TIMERS("time", (void)0);
+	simuMsgStr("test", "empty");
+	TIMERS("time", (void)0; __asm__ volatile ("nop\npush r1\npop r1"));
 #if 0
 	#if AES_CIPHER
 	NAME("aesCipher");
@@ -138,5 +136,5 @@ int main(void)
 	GVALUE("user", sizeof(E) + sizeof(data));
 	#endif
 #endif
-	simu_exit();
+	simuExit();
 }	
