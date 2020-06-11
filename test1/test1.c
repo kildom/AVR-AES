@@ -59,26 +59,22 @@ int main(void)
 	simuMsgU8("padding", 1);
 	#endif
 
-	//__asm__ volatile ("push r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\npush r1\n");
-
-	simuMsgStr("test", "empty");
-	TIMERS("time", (void)0; __asm__ volatile ("nop\npush r1\npop r1"));
-#if 0
 	#if AES_CIPHER
-	NAME("aesCipher");
+	simuMsgStr("test", "aesCipher");
 	COPY(data, plain);
 	#if AES_IMPLEMENTATION <= 1
 	COPY(key, K);
-	TIMERS(aesCipher(key, data));
-	COMPARE(key, IK);
+	TIMERS("time", aesCipher(key, data));
+	CMP_EQ("result-key", key, IK);
 	#elif AES_IMPLEMENTATION <= 3
-	TIMERS(aesCipher(E, data));
+	TIMERS("time", aesCipher(E, data));
 	#else
-	TIMERS(aesCipher(K, data));
+	TIMERS("time", aesCipher(K, data));
 	#endif
-	COMPARE(data, cipher);
+	CMP_EQ("result-ciphertext", data, cipher);
 	#endif
 
+#if 0
 	#if AES_IMPLEMENTATION != 4
 
 	#if AES_INVCIPHER
