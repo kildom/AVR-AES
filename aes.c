@@ -76,11 +76,7 @@
 /************************************************************************/
 
 
-
-
 typedef unsigned char byte;
-
-static byte Rcon;
 
 #ifdef AES_USEASM
 	#define GF28_MUL2(a) { asm ("lsl %0 \n brcc .+2 \n eor %0, %1 \n" : "=r" (a) : "r" (c0x1b), "0" (a)); }
@@ -465,7 +461,7 @@ static byte aesCalcSbox(byte x)
 
 #if AES_CIPHER || AES_KEYPATCH
 
-static void aesAddRoundKey(byte* state, byte* key)
+static byte aesAddRoundKey(byte Rcon, byte* state, byte* key)
 {
 	byte c0x1b = 0x1b;
 	byte *ptr;
@@ -496,13 +492,14 @@ static void aesAddRoundKey(byte* state, byte* key)
 			*state++ ^= d;
 		}
 	}
+	return Rcon;
 }
 
 #endif
 
 #if AES_INVCIPHER || AES_KEYREWIND
 
-static void aesInvAddRoundKey(byte* state, byte* key)
+static byte aesInvAddRoundKey(byte Rcon, byte* state, byte* key)
 {
 	byte c0x8d = 0x8d;
 	byte *ptr;
@@ -534,7 +531,7 @@ static void aesInvAddRoundKey(byte* state, byte* key)
 			ptr[3] ^= d;
 		}			
 	}
-	
+	return Rcon;
 }
 
 #endif
@@ -767,8 +764,7 @@ void aesMixColumns_B(byte* state, byte inv)
 void aesCipher(unsigned char* key, unsigned char* state)
 {
 	byte r;
-
-	Rcon = 1;
+	byte Rcon = 1;
 
 	for (r = 0; r < 11; r++) {
 		if (r) {
@@ -776,7 +772,7 @@ void aesCipher(unsigned char* key, unsigned char* state)
 			aesShiftRows(state);
 			if (r != 10) aesMixColumns(state);
 		}
-		aesAddRoundKey(state, key);
+		Rcon = aesAddRoundKey(Rcon, state, key);
 	}
 
 }
@@ -787,11 +783,10 @@ void aesCipher(unsigned char* key, unsigned char* state)
 void aesInvCipher(unsigned char* patched, unsigned char* state)
 {
 	byte r;
-
-	Rcon = 0xD8;
+	byte Rcon = 0xD8;
 
 	for (r = 10; !(r&0x80); r--) {
-		aesInvAddRoundKey(state, patched);
+		Rcon = aesInvAddRoundKey(Rcon, state, patched);
 		if (r) {
 			if (r != 10) aesInvMixColumns(state);
 			aesInvShiftRows(state);
@@ -807,9 +802,9 @@ void aesInvCipher(unsigned char* patched, unsigned char* state)
 void aesKeyRewind(unsigned char* patched)
 {
 	byte r;
-	Rcon = 0xD8;
+	byte Rcon = 0xD8;
 	for (r = 0; r < 11; r++) {
-		aesInvAddRoundKey(0, patched);
+		Rcon = aesInvAddRoundKey(Rcon, 0, patched);
 	}		
 }
 #endif
@@ -819,9 +814,9 @@ void aesKeyRewind(unsigned char* patched)
 void aesKeyPatch(unsigned char* key)
 {
 	byte r;
-	Rcon = 1;
+	byte Rcon = 1;
 	for (r = 0; r < 11; r++) {
-		aesAddRoundKey(0, key);
+		Rcon = aesAddRoundKey(Rcon, 0, key);
 	}
 }
 #endif
