@@ -61,6 +61,7 @@ int main(void)
 
 	#if AES_CIPHER
 	simuMsgStr("test", "aesCipher");
+	simuMsgU8("bytes", 16);
 	COPY(data, plain);
 	#if AES_IMPLEMENTATION <= 1
 	COPY(key, K);
