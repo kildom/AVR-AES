@@ -3,3 +3,4 @@
 *.map
 *.o
 *.vcd
+/test1/results.html

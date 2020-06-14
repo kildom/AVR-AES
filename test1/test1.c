@@ -59,9 +59,14 @@ int main(void)
 	simuMsgU8("padding", 1);
 	#endif
 
+	#if AES_IMPLEMENTATION <= 1 || AES_IMPLEMENTATION == 4
+	simuMsgU16("user", sizeof(key) + sizeof(data));
+	#else
+	simuMsgU16("user", sizeof(E) + sizeof(data));
+	#endif
+
 	#if AES_CIPHER
 	simuMsgStr("test", "aesCipher");
-	simuMsgU8("bytes", 16);
 	COPY(data, plain);
 	#if AES_IMPLEMENTATION <= 1
 	COPY(key, K);
@@ -75,63 +80,58 @@ int main(void)
 	CMP_EQ("result-ciphertext", data, cipher);
 	#endif
 
-#if 0
+
 	#if AES_IMPLEMENTATION != 4
 
 	#if AES_INVCIPHER
-	NAME("aesInvCipher");
+	simuMsgStr("test", "aesInvCipher");
 	COPY(data, cipher);
 	#if AES_IMPLEMENTATION <= 1
 	COPY(key, IK);
-	TIMERS(aesInvCipher(key, data));
-	COMPARE(key, K);
+	TIMERS("time", aesInvCipher(key, data));
+	CMP_EQ("result-key", key, K);
 	#elif AES_IMPLEMENTATION == 2
-	TIMERS(aesInvCipher(E, data));
+	TIMERS("time", aesInvCipher(E, data));
 	#else
-	TIMERS(aesInvCipher(EP, data));
+	TIMERS("time", aesInvCipher(EP, data));
 	#endif
-	COMPARE(data, plain);
+	CMP_EQ("result-plaintext", data, plain);
 	#endif
 
 	#if AES_IMPLEMENTATION >= 2
 	#if AES_KEYEXPAND 
-	NAME("aesKeyExpand");
-	TIMERS(aesKeyExpand(K, expanded));
-	COMPARE(expanded, E);
+	simuMsgStr("test", "aesKeyExpand");
+	TIMERS("time", aesKeyExpand(K, expanded));
+	CMP_EQ("result-expanded", expanded, E);
 	#endif
-	#endif
-	
-	#if AES_IMPLEMENTATION != 2
-	#if AES_KEYPATCH
-	NAME("aesKeyPatch");
-	#if AES_IMPLEMENTATION <= 1
-	COPY(key, K);
-	TIMERS(aesKeyPatch(key));
-	COMPARE(key, IK);
-	#else
-	COPY(expanded, E);
-	TIMERS(aesKeyPatch(expanded));
-	COMPARE(expanded, EP);
-	#endif
-	#endif
-	#endif
-	
-	#if AES_IMPLEMENTATION <= 1
-	#if AES_KEYREWIND
-	NAME("aesKeyRewind");
-	COPY(key, IK);
-	TIMERS(aesKeyRewind(key));
-	COMPARE(key, K);
-	#endif
-	#endif	
-	
 	#endif
 
-	#if AES_IMPLEMENTATION <= 1 || AES_IMPLEMENTATION == 4
-	GVALUE("user", sizeof(key) + sizeof(data));
+
+	#if AES_IMPLEMENTATION != 2
+	#if AES_KEYPATCH
+	simuMsgStr("test", "aesKeyPatch");
+	#if AES_IMPLEMENTATION <= 1
+	COPY(key, K);
+	TIMERS("time", aesKeyPatch(key));
+	CMP_EQ("result-key", key, IK);
 	#else
-	GVALUE("user", sizeof(E) + sizeof(data));
+	COPY(expanded, E);
+	TIMERS("time", aesKeyPatch(expanded));
+	CMP_EQ("result-key", expanded, EP);
 	#endif
-#endif
+	#endif
+	#endif
+
+	#if AES_IMPLEMENTATION <= 1
+	#if AES_KEYREWIND
+	simuMsgStr("test", "aesKeyRewind");
+	COPY(key, IK);
+	TIMERS("time", aesKeyRewind(key));
+	CMP_EQ("result-key", key, K);
+	#endif
+	#endif
+
+	#endif
+
 	simuExit();
 }	
